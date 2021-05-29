@@ -5,9 +5,12 @@
    [datahike.api :as d]
    [discljord.messaging :as msg]
    [discljord.connections :as con]
+   [discljord.events :as e]
+   [discljord.events.middleware :as mdw]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
    [integrant.core :as ig]
+   [raid-boss.components :refer [*db* *gateway* *messaging*]]
    [taoensso.timbre :as log])
   (:import
    (java.io PushbackReader)))
@@ -177,12 +180,44 @@
 
 (defmethod ig/init-key :discord/event
   [_ event]
-  event)
+  (:name event))
 
 (defmethod ig/init-key :raid-boss/event-handler
   [_ {:keys [event-handlers]}]
-  )
+  (let [handlers (reduce
+                  (fn [acc handler]
+                    (reduce #(update %1 %2 (fnil conj []) (:handler-fn handler)) acc (:events handler)))
+                  {}
+                  event-handlers)]
+    (fn [event-type event-data]
+      (e/dispatch-handlers handlers event-type event-data))))
 
-(defmethod ig/init-key :raid-boss.event/interaction-create
-  [_ {:keys [events db messaging]}]
-  )
+(defmethod ig/init-key :raid-boss/middleware
+  [_ {:keys [handler middleware]}]
+  ((apply comp middleware) handler))
+
+(defmethod ig/init-key :raid-boss.event/handler
+  [_ {:keys [events handler-fn db messaging gateway]}]
+  {:events events
+   :handler-fn (let [fun (resolve handler-fn)]
+                 (fn [& args]
+                   (binding [*messaging* messaging
+                             *gateway* gateway
+                             *db* db]
+                     (apply fun args))))})
+
+(defmethod ig/init-key :discord.bot/application
+  [_ {:keys [event-channel handler logger]}]
+  (let [stop-chan (a/chan 1)]
+    (a/go-loop []
+      (a/alt!
+        stop-chan ([v])
+        event-channel ([[event-type event-data]]
+                       (handler event-type event-data)
+                       (recur))
+        :priority true))
+    {:stop-chan stop-chan}))
+
+(defmethod ig/halt-key! :discord.bot/application
+  [_ {:keys [stop-chan]}]
+  (a/put! stop-chan :stop))

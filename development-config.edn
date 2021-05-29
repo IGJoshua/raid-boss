@@ -1,23 +1,26 @@
 {:logger.instance/timbre {:log-file nil
                           :level :debug}
 
- :datalog/schema {:idents [{:db/ident :id
+ :datalog/schema {:idents [;; Guild fields
+                           {:db/ident :guild/id
                             :db/valueType :db.type/string
-                            :db/cardinality :db.cardinality/one}
-                           {:db/ident :index
-                            :db/valueType :db.type/long
-                            :db/cardinality :db.cardinality/one}
+                            :db/cardinality :db.cardinality/one
+                            :db/unique :db.unique/value}
 
                            ;; Role fields
-                           {:db/ident :role
+                           {:db/ident :guild/role
                             :db/valueType :db.type/ref
                             :db/cardinality :db.cardinality/many}
+                           {:db/ident :role/id
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one
+                            :db/unique :db.unique/value}
                            {:db/ident :role/can-ban?
                             :db/valueType :db.type/boolean
                             :db/cardinality :db.cardinality/one}
 
                            ;; Blacklist fields
-                           {:db/ident :blacklist
+                           {:db/ident :guild/blacklist
                             :db/valueType :db.type/ref
                             :db/cardinality :db.cardinality/many}
                            {:db/ident :pattern/type
@@ -25,14 +28,31 @@
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :pattern/buffer
                             :db/valueType :db.type/string
-                            :db/cardinality :db.cardinality/one}]
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :blacklist/index
+                            :db/valueType :db.type/long
+                            :db/cardinality :db.cardinality/one}
+
+                           ;; Invite fields
+                           {:db/ident :guild/invite
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :invite/count
+                            :db/valueType :db.type/long
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :invite/code
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one
+                            :db/unique :db.unique/value}]
 
                   :entities [{:db/ident :guild/guard
-                              :db.entity/attrs [:id]}
+                              :db.entity/attrs [:guild/id]}
                              {:db/ident :role/guard
-                              :db.entity/attrs [:id :role/can-ban?]}
+                              :db.entity/attrs [:role/id :role/can-ban?]}
                              {:db/ident :blacklist/guard
-                              :db.entity/attrs [:index :pattern/type :pattern/buffer]}]}
+                              :db.entity/attrs [:pattern/index :pattern/type :pattern/buffer]}
+                             {:db/ident :invite/guard
+                              :db.entity/attrs [:invite/code :invite/count]}]}
 
  :datalog.db/datahike {:db-config {:store {:backend :file
                                            :path "/tmp/raid-boss/db"}
@@ -77,22 +97,36 @@
  :raid-boss.event/interaction-create
  {:events [#ig/ref :discord.event/interaction-create]
   :db #ig/ref :datalog/db
-  :messaging #ig/ref :discord.connection/messaging}
+  :messaging #ig/ref :discord.connection/messaging
+  ;; :handler-fn 'some-func
+  }
 
  :raid-boss.event/update-guild-interactions-and-roles
  {:events [#ig/ref :discord.event/guild-create
-           #ig/ref :discord.event/guild-delete]}
+           #ig/ref :discord.event/guild-delete]
+  :db #ig/ref :datalog/db
+  ;; :handler-fn 'some-func
+  }
 
  :raid-boss.event/track-invite-use
- {:events [#ig/ref :discord.event/guild-member-add]}
+ {:events [#ig/ref :discord.event/guild-member-add]
+  :messaging #ig/ref :discord.connection/messaging
+  :db #ig/ref :datalog/db
+  ;; :handler-fn 'some-func
+  }
 
  :raid-boss.event/ban-blacklisted-users
- {:events [#ig/ref :discord.event/guild-member-add]}
+ {:events [#ig/ref :discord.event/guild-member-add]
+  :db #ig/ref :datalog/db
+  ;; :handler-fn 'some-func
+  }
 
  :raid-boss.event/update-admin-roles
  {:events [#ig/ref :discord.event/guild-role-create
            #ig/ref :discord.event/guild-role-update
-           #ig/ref :discord.event/guild-role-delete]}
+           #ig/ref :discord.event/guild-role-delete]
+  ;; :handler-fn 'some-func
+  }
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
                            :handler #ig/ref :raid-boss/event-handler
