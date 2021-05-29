@@ -1,0 +1,99 @@
+{:logger.instance/timbre {:log-file nil
+                          :level :debug}
+
+ :datalog/schema {:idents [{:db/ident :id
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :index
+                            :db/valueType :db.type/long
+                            :db/cardinality :db.cardinality/one}
+
+                           ;; Role fields
+                           {:db/ident :role
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :role/can-ban?
+                            :db/valueType :db.type/boolean
+                            :db/cardinality :db.cardinality/one}
+
+                           ;; Blacklist fields
+                           {:db/ident :blacklist
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :pattern/type
+                            :db/valueType :db.type/keyword
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :pattern/buffer
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one}]
+
+                  :entities [{:db/ident :guild/guard
+                              :db.entity/attrs [:id]}
+                             {:db/ident :role/guard
+                              :db.entity/attrs [:id :role/can-ban?]}
+                             {:db/ident :blacklist/guard
+                              :db.entity/attrs [:index :pattern/type :pattern/buffer]}]}
+
+ :datalog.db/datahike {:db-config {:store {:backend :file
+                                           :path "/tmp/raid-boss/db"}
+                                   :name "raid-boss"
+                                   :schema-flexibility :write
+                                   :keep-history? false}
+                       :schema #ig/ref :datalog/schema}
+
+ :discord.bot/token {:source :file
+                     :path "token.txt"}
+
+ :discord.bot.intent/guilds :guilds
+ :discord.bot.intent/guild-members :guild-members
+ :discord.bot.intent/guild-invites :guild-invites
+
+ :discord.event/interaction-create {:name :interaction-create}
+ :discord.event/guild-create {:name :guild-create
+                              :intent #ig/ref :discord.bot.intent/guilds}
+ :discord.event/guild-delete {:name :guild-delete
+                              :intent #ig/ref :discord.bot.intent/guilds}
+ :discord.event/guild-member-add {:name :guild-member:add
+                                  :intent #ig/ref :discord.bot.intent/guild-members}
+ :discord.event/invite-create {:name :invite-create
+                               :intent #ig/ref :discord.bot.intent/guild-invites}
+ :discord.event/guild-role-create {:name :guild-role-create
+                                   :intent #ig/ref :discord.bot.intent/guilds}
+ :discord.event/guild-role-update {:name :guild-role-create
+                                   :intent #ig/ref :discord.bot.intent/guilds}
+ :discord.event/guild-role-delete {:name :guild-role-create
+                                   :intent #ig/ref :discord.bot.intent/guilds}
+
+ :discord.connection/event-channel {:size 1000}
+ :discord.connection/messaging {:token #ig/ref :discord.bot/token
+                                :logger #ig/ref :logger/instance}
+ :discord.connection/gateway {:intents #ig/refset :discord.bot/intent
+                              :token #ig/ref :discord.bot/token
+                              :channel #ig/ref :discord.connection/event-channel
+                              :logger #ig/ref :logger/instance}
+
+ :raid-boss/event-handler {:event-handlers #ig/refset :raid-boss.event/handler}
+
+ :raid-boss.event/interaction-create
+ {:events [#ig/ref :discord.event/interaction-create]
+  :db #ig/ref :datalog/db
+  :messaging #ig/ref :discord.connection/messaging}
+
+ :raid-boss.event/update-guild-interactions-and-roles
+ {:events [#ig/ref :discord.event/guild-create
+           #ig/ref :discord.event/guild-delete]}
+
+ :raid-boss.event/track-invite-use
+ {:events [#ig/ref :discord.event/guild-member-add]}
+
+ :raid-boss.event/ban-blacklisted-users
+ {:events [#ig/ref :discord.event/guild-member-add]}
+
+ :raid-boss.event/update-admin-roles
+ {:events [#ig/ref :discord.event/guild-role-create
+           #ig/ref :discord.event/guild-role-update
+           #ig/ref :discord.event/guild-role-delete]}
+
+ :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
+                           :handler #ig/ref :raid-boss/event-handler
+                           :logger #ig/ref :logger/instance}}
