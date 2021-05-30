@@ -6,7 +6,6 @@
    [discljord.messaging :as msg]
    [discljord.connections :as con]
    [discljord.events :as e]
-   [discljord.events.middleware :as mdw]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
    [integrant.core :as ig]
