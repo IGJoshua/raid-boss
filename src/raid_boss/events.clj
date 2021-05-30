@@ -4,6 +4,8 @@
    [discljord.connections :as con]
    [discljord.messaging :as msg]
    [discljord.permissions :as perms]
+   [farolero.core :as far :refer [restart-case handler-case handler-bind
+                                  block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging*]]))
 
 (defn update-guild-state
