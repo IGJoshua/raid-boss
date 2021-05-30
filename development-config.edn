@@ -5,60 +5,85 @@
                            {:db/ident :guild/id
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one
-                            :db/unique :db.unique/value}
-
-                           ;; Role fields
+                            :db/unique :db.unique/identity}
+                           {:db/ident :guild/notify-channel
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one}
                            {:db/ident :guild/role
                             :db/valueType :db.type/ref
                             :db/cardinality :db.cardinality/many}
+                           {:db/ident :guild/blacklist
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :guild/invite
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :guild/member
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/many}
+
+                           ;; Role fields
                            {:db/ident :role/id
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one
-                            :db/unique :db.unique/value}
+                            :db/unique :db.unique/identity}
                            {:db/ident :role/can-ban?
                             :db/valueType :db.type/boolean
                             :db/cardinality :db.cardinality/one}
 
                            ;; Blacklist fields
-                           {:db/ident :guild/blacklist
-                            :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                           {:db/ident :blacklist/index
+                            :db/valueType :db.type/long
+                            :db/cardinality :db.cardinality/one}
                            {:db/ident :pattern/type
                             :db/valueType :db.type/keyword
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :pattern/buffer
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one}
-                           {:db/ident :blacklist/index
-                            :db/valueType :db.type/long
-                            :db/cardinality :db.cardinality/one}
 
                            ;; Invite fields
-                           {:db/ident :guild/invite
-                            :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
-                           {:db/ident :invite/count
-                            :db/valueType :db.type/long
-                            :db/cardinality :db.cardinality/one}
                            {:db/ident :invite/code
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one
-                            :db/unique :db.unique/value}]
+                            :db/unique :db.unique/identity}
+                           {:db/ident :invite/count
+                            :db/valueType :db.type/long
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :invite/author
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :invite/high-risk?
+                            :db/valueType :db.type/boolean
+                            :db/cardinality :db.cardinality/one}
+
+                           ;; Member fields
+                           {:db/ident :member/id
+                            :db/valueType :db.type/string
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :member/join-date
+                            :db/valueType :db.type/instant
+                            :db/cardinality :db.cardinality/one}
+                           {:db/ident :member/invite
+                            :db/valueType :db.type/ref
+                            :db/cardinality :db.cardinality/one}]
 
                   :entities [{:db/ident :guild/guard
                               :db.entity/attrs [:guild/id]}
                              {:db/ident :role/guard
                               :db.entity/attrs [:role/id :role/can-ban?]}
-                             {:db/ident :blacklist/guard
+                             {:db/ident :pattern/guard
                               :db.entity/attrs [:pattern/index :pattern/type :pattern/buffer]}
                              {:db/ident :invite/guard
-                              :db.entity/attrs [:invite/code :invite/count]}]}
+                              :db.entity/attrs [:invite/code :invite/count]}
+                             {:db/ident :member/guard
+                              :db.entity/attrs [:member/id :member/invite :member/join-date]}]}
 
  :datalog.db/datahike {:db-config {:store {:backend :file
                                            :path "/tmp/raid-boss/db"}
                                    :name "raid-boss"
                                    :schema-flexibility :write
-                                   :keep-history? false}
+                                   :keep-history? true}
                        :schema #ig/ref :datalog/schema}
 
  :discord.bot/token {:source :file
