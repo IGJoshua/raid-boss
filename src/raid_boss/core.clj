@@ -11,6 +11,7 @@
                                   block return-from tagbody go]]
    [integrant.core :as ig]
    [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [raid-boss.events]
    [taoensso.timbre :as log])
   (:import
    (java.io PushbackReader)))
@@ -22,11 +23,6 @@
 (derive :discord.bot.intent/guild-members :discord.bot/intent)
 (derive :discord.bot.intent/guild-invites :discord.bot/intent)
 
-(derive :raid-boss.event/interaction-create :raid-boss.event/handler)
-(derive :raid-boss.event/update-guild-interactions-and-roles :raid-boss.event/handler)
-(derive :raid-boss.event/track-invite-use :raid-boss.event/handler)
-(derive :raid-boss.event/ban-blacklisted-users :raid-boss.event/handler)
-(derive :raid-boss.event/update-admin-roles :raid-boss.event/handler)
 (derive :discord.event/guild-create :discord/event)
 (derive :discord.event/guild-delete :discord/event)
 (derive :discord.event/guild-member-add :discord/event)
@@ -35,6 +31,12 @@
 (derive :discord.event/guild-role-delete :discord/event)
 (derive :discord.event/interaction-create :discord/event)
 (derive :discord.event/invite-create :discord/event)
+
+(derive :raid-boss.event/perform-slash-command :raid-boss/event)
+(derive :raid-boss.event/update-guild-interactions-and-roles :raid-boss/event)
+(derive :raid-boss.event/track-invite-use :raid-boss/event)
+(derive :raid-boss.event/ban-blacklisted-users :raid-boss/event)
+(derive :raid-boss.event/update-admin-roles :raid-boss/event)
 
 (defn load-config
   [path]
@@ -192,14 +194,21 @@
     (fn [event-type event-data]
       (e/dispatch-handlers handlers event-type event-data))))
 
+(defmethod ig/init-key :raid-boss/command-handler
+  [_ {:keys [command-handlers]}]
+  (fn [event-type event-data]
+    ))
+
 (defmethod ig/init-key :raid-boss/middleware
   [_ {:keys [handler middleware]}]
   ((apply comp middleware) handler))
 
-(defmethod ig/init-key :raid-boss.event/handler
+(defmethod ig/init-key :raid-boss/event
   [_ {:keys [events handler-fn db messaging gateway]}]
   {:events events
-   :handler-fn (let [fun (resolve handler-fn)]
+   :handler-fn (let [fun (if (symbol? handler-fn)
+                           (resolve handler-fn)
+                           handler-fn)]
                  (fn [& args]
                    (binding [*messaging* messaging
                              *gateway* gateway
@@ -207,13 +216,14 @@
                      (apply fun args))))})
 
 (defmethod ig/init-key :discord.bot/application
-  [_ {:keys [event-channel handler logger]}]
+  [_ {:keys [event-channel handler]}]
   (let [stop-chan (a/chan 1)]
     (a/go-loop []
       (a/alt!
         stop-chan ([v])
         event-channel ([[event-type event-data]]
-                       (handler event-type event-data)
+                       (log/trace event-type event-data)
+                       (a/go (handler event-type event-data))
                        (recur))
         :priority true))
     {:stop-chan stop-chan}))

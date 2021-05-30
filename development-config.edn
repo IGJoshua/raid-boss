@@ -1,5 +1,5 @@
 {:logger.instance/timbre {:log-file nil
-                          :level :debug}
+                          :level [["raid-boss.*" :trace] ["*" :debug]]}
 
  :datalog/schema {:idents [;; Guild fields
                            {:db/ident :guild/id
@@ -92,41 +92,37 @@
                               :channel #ig/ref :discord.connection/event-channel
                               :logger #ig/ref :logger/instance}
 
- :raid-boss/event-handler {:event-handlers #ig/refset :raid-boss.event/handler}
+ :raid-boss/event-handler {:event-handlers #ig/refset :raid-boss/event}
+ :raid-boss/command-handler {:command-handlers #ig/refset :raid-boss/command}
 
- :raid-boss.event/interaction-create
+ :raid-boss.event/perform-slash-command
  {:events [#ig/ref :discord.event/interaction-create]
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
-  ;; :handler-fn 'some-func
-  }
+  :handler-fn #ig/ref :raid-boss/command-handler}
 
  :raid-boss.event/update-guild-interactions-and-roles
  {:events [#ig/ref :discord.event/guild-create
            #ig/ref :discord.event/guild-delete]
   :db #ig/ref :datalog/db
-  ;; :handler-fn 'some-func
-  }
+  :handler-fn raid-boss.events/update-guild-state}
 
  :raid-boss.event/track-invite-use
  {:events [#ig/ref :discord.event/guild-member-add]
   :messaging #ig/ref :discord.connection/messaging
   :db #ig/ref :datalog/db
-  ;; :handler-fn 'some-func
-  }
+  :handler-fn raid-boss.events/track-invite-use}
 
  :raid-boss.event/ban-blacklisted-users
  {:events [#ig/ref :discord.event/guild-member-add]
   :db #ig/ref :datalog/db
-  ;; :handler-fn 'some-func
-  }
+  :handler-fn raid-boss.events/ban-blacklisted-user-on-join}
 
  :raid-boss.event/update-admin-roles
  {:events [#ig/ref :discord.event/guild-role-create
            #ig/ref :discord.event/guild-role-update
            #ig/ref :discord.event/guild-role-delete]
-  ;; :handler-fn 'some-func
-  }
+  :handler-fn raid-boss.events/update-admin-roles}
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
                            :handler #ig/ref :raid-boss/event-handler
