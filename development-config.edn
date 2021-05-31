@@ -153,24 +153,34 @@
                      :path "token.txt"}
 
  :discord.bot.intent/guilds :guilds
+ :discord.bot.intent/guild-bans :guild-bans
  :discord.bot.intent/guild-members :guild-members
+ :discord.bot.intent/guild-messages :guild-messages
  :discord.bot.intent/guild-invites :guild-invites
 
  :discord.event/interaction-create {:name :interaction-create}
  :discord.event/guild-create {:name :guild-create
-                              :intent #ig/ref :discord.bot.intent/guilds}
+                              :intents [#ig/ref :discord.bot.intent/guilds]}
  :discord.event/guild-delete {:name :guild-delete
-                              :intent #ig/ref :discord.bot.intent/guilds}
+                              :intents [#ig/ref :discord.bot.intent/guilds]}
  :discord.event/guild-member-add {:name :guild-member:add
-                                  :intent #ig/ref :discord.bot.intent/guild-members}
+                                  :intents [#ig/ref :discord.bot.intent/guild-members]}
+ :discord.event/guild-member-update {:name :guild-member:add
+                                     :intents [#ig/ref :discord.bot.intent/guild-members]}
  :discord.event/invite-create {:name :invite-create
-                               :intent #ig/ref :discord.bot.intent/guild-invites}
+                               :intents [#ig/ref :discord.bot.intent/guild-invites]}
+ :discord.event/guild-ban-remove {:name :guild-ban-remove
+                                  :intents [#ig/ref :discord.bot.intent/guild-bans]}
  :discord.event/guild-role-create {:name :guild-role-create
-                                   :intent #ig/ref :discord.bot.intent/guilds}
+                                   :intents [#ig/ref :discord.bot.intent/guilds]}
  :discord.event/guild-role-update {:name :guild-role-create
-                                   :intent #ig/ref :discord.bot.intent/guilds}
+                                   :intents [#ig/ref :discord.bot.intent/guilds]}
  :discord.event/guild-role-delete {:name :guild-role-create
-                                   :intent #ig/ref :discord.bot.intent/guilds}
+                                   :intents [#ig/ref :discord.bot.intent/guilds]}
+ :discord.event/message-create {:name :message-create
+                                :intents [#ig/ref :discord.bot.intent/guild-messages]}
+ :discord.event/message-update {:name :message-update
+                                :intents [#ig/ref :discord.bot.intent/guild-messages]}
 
  :discord.connection/event-channel {:size 1000}
  :discord.connection/messaging {:token #ig/ref :discord.bot/token
@@ -189,28 +199,41 @@
   :messaging #ig/ref :discord.connection/messaging
   :handler-fn #ig/ref :raid-boss/command-handler}
 
- :raid-boss.event/update-guild-interactions-and-roles
+ :raid-boss.event/update-guild-state
  {:events [#ig/ref :discord.event/guild-create
            #ig/ref :discord.event/guild-delete]
   :db #ig/ref :datalog/db
+  :messaging #ig/ref :discord.connection/messaging
   :handler-fn raid-boss.events/update-guild-state}
 
- :raid-boss.event/track-invite-use
+ :raid-boss.event/process-new-user
  {:events [#ig/ref :discord.event/guild-member-add]
+  :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
-  :db #ig/ref :datalog/db
-  :handler-fn raid-boss.events/track-invite-use}
+  :handler-fn raid-boss.events/process-new-user}
 
- :raid-boss.event/ban-blacklisted-users
- {:events [#ig/ref :discord.event/guild-member-add]
+ :raid-boss.event/record-unquarantined-users
+ {:events [#ig/ref :discord.event/guild-member-update
+           #ig/ref :discord.event/guild-ban-remove]
   :db #ig/ref :datalog/db
-  :handler-fn raid-boss.events/ban-blacklisted-user-on-join}
+  :handler-fn raid-boss.events/record-unquarantined-user}
 
  :raid-boss.event/update-admin-roles
  {:events [#ig/ref :discord.event/guild-role-create
            #ig/ref :discord.event/guild-role-update
            #ig/ref :discord.event/guild-role-delete]
+  :db #ig/ref :datalog/db
   :handler-fn raid-boss.events/update-admin-roles}
+
+ :raid-boss.event/record-spam-ham-messages
+ {:events [#ig/ref :discord.event/message-create
+           #ig/ref :discord.event/message-update]
+  :db #ig/ref :datalog/db
+  :handler-fn raid-boss.events/record-messages}
+
+ :raid-boss.command/test
+ {:options []
+  :handler-fn raid-boss.commands/test-handler}
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
                            :handler #ig/ref :raid-boss/event-handler

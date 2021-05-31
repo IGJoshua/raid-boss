@@ -10,6 +10,7 @@
                                   block return-from tagbody go]]
    [integrant.core :as ig]
    [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [raid-boss.commands :refer [options-match?]]
    [raid-boss.events]
    [taoensso.timbre :as log])
   (:import
@@ -19,23 +20,32 @@
 (derive :logger.instance/timbre :logger/instance)
 
 (derive :discord.bot.intent/guilds :discord.bot/intent)
+(derive :discord.bot.intent/guild-bans :discord.bot/intent)
 (derive :discord.bot.intent/guild-members :discord.bot/intent)
+(derive :discord.bot.intent/guild-messages :discord.bot/intent)
 (derive :discord.bot.intent/guild-invites :discord.bot/intent)
 
 (derive :discord.event/guild-create :discord/event)
 (derive :discord.event/guild-delete :discord/event)
 (derive :discord.event/guild-member-add :discord/event)
+(derive :discord.event/guild-member-update :discord/event)
+(derive :discord.event/guild-ban-remove :discord/event)
 (derive :discord.event/guild-role-create :discord/event)
 (derive :discord.event/guild-role-update :discord/event)
 (derive :discord.event/guild-role-delete :discord/event)
 (derive :discord.event/interaction-create :discord/event)
 (derive :discord.event/invite-create :discord/event)
+(derive :discord.event/message-create :discord/event)
+(derive :discord.event/message-update :discord/event)
 
 (derive :raid-boss.event/perform-slash-command :raid-boss/event)
-(derive :raid-boss.event/update-guild-interactions-and-roles :raid-boss/event)
-(derive :raid-boss.event/track-invite-use :raid-boss/event)
-(derive :raid-boss.event/ban-blacklisted-users :raid-boss/event)
+(derive :raid-boss.event/update-guild-state :raid-boss/event)
+(derive :raid-boss.event/process-new-user :raid-boss/event)
+(derive :raid-boss.event/record-unquarantined-users :raid-boss/event)
 (derive :raid-boss.event/update-admin-roles :raid-boss/event)
+(derive :raid-boss.event/record-spam-ham-messages :raid-boss/event)
+
+(derive :raid-boss.command/test :raid-boss/command)
 
 (defn load-config
   [path]
@@ -128,7 +138,7 @@
   (let [config log/*config*
         old-tools-logging-logger (volatile! nil)]
     (log/merge-config!
-     (cond-> {:level level}
+     (cond-> {:min-level level}
        log-file (assoc :appenders {:spit (log/spit-appender {:fname log-file})})))
     (when (find-ns 'clojure.tools.logging)
       (alter-var-root #'clojure.tools.logging/*logger-factory*
@@ -196,7 +206,10 @@
 (defmethod ig/init-key :raid-boss/command-handler
   [_ {:keys [command-handlers]}]
   (fn [event-type event-data]
-    ))
+    (when (= 2 (:type event-data))
+      (doseq [handler command-handlers
+              :when (options-match? (:options handler) (:data event-data))]
+        ((:handler-fn handler) event-data)))))
 
 (defmethod ig/init-key :raid-boss/middleware
   [_ {:keys [handler middleware]}]
@@ -209,9 +222,21 @@
                            (resolve handler-fn)
                            handler-fn)]
                  (fn [& args]
-                   (binding [*messaging* messaging
-                             *gateway* gateway
-                             *db* db]
+                   (binding [*messaging* (or messaging *messaging*)
+                             *gateway* (or gateway *gateway*)
+                             *db* (or db *db*)]
+                     (apply fun args))))})
+
+(defmethod ig/init-key :raid-boss/command
+  [_ {:keys [options handler-fn db messaging gateway]}]
+  {:options options
+   :handler-fn (let [fun (if (symbol? handler-fn)
+                           (resolve handler-fn)
+                           handler-fn)]
+                 (fn [& args]
+                   (binding [*messaging* (or messaging *messaging*)
+                             *gateway* (or gateway *gateway*)
+                             *db* (or db *db*)]
                      (apply fun args))))})
 
 (defmethod ig/init-key :discord.bot/application
