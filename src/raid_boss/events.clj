@@ -41,7 +41,7 @@
   ;; TODO: Update the role passed to add or remove a role that can use the commands
   )
 
-(defn record-spam-ham-messages
+(defn record-messages
   [event-type event-data]
   ;; TODO: Record whether a given message was ham or spam for a user, maybe banning them
   )
