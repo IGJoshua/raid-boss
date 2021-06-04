@@ -17,22 +17,28 @@
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :guild/actions
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
                            {:db/ident :guild/role
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
                            {:db/ident :guild/blacklist
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
                            {:db/ident :guild/invite
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
                            {:db/ident :guild/member
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
                            {:db/ident :guild/join-group
                             :db/valueType :db.type/ref
-                            :db/cardinality :db.cardinality/many}
+                            :db/cardinality :db.cardinality/many
+                            :db/isComponent true}
 
                            ;; Actions
                            {:db/ident :action/when
