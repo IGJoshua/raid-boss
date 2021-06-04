@@ -216,7 +216,7 @@
   ((apply comp middleware) handler))
 
 (defmethod ig/init-key :raid-boss/event
-  [_ {:keys [events handler-fn db messaging gateway]}]
+  [_ {:keys [events handler-fn db messaging gateway] :as opts}]
   {:events events
    :handler-fn (let [fun (if (symbol? handler-fn)
                            (resolve handler-fn)
@@ -225,7 +225,8 @@
                    (binding [*messaging* (or messaging *messaging*)
                              *gateway* (or gateway *gateway*)
                              *db* (or db *db*)]
-                     (apply fun args))))})
+                     (let [deps (dissoc opts :events :handler-fn :db :messaging :gateway)]
+                       (apply fun deps args)))))})
 
 (defmethod ig/init-key :raid-boss/command
   [_ {:keys [options handler-fn db messaging gateway]}]
