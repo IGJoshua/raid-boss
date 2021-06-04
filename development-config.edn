@@ -208,6 +208,7 @@
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
   :commands #ig/refset :raid-boss/command
+  :command-version 1
   :handler-fn raid-boss.events/update-guild-state}
 
  :raid-boss.event/process-new-user
