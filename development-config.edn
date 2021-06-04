@@ -56,8 +56,8 @@
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one
                             :db/unique :db.unique/identity}
-                           {:db/ident :role/can-ban?
-                            :db/valueType :db.type/boolean
+                           {:db/ident :role/permissions
+                            :db/valueType :db.type/long
                             :db/cardinality :db.cardinality/one}
 
                            ;; Blacklist fields
