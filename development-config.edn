@@ -6,6 +6,9 @@
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one
                             :db/unique :db.unique/identity}
+                           {:db/ident :guild/commands-version
+                            :db/valueType :db.type/boolean
+                            :db/cardinality :db.cardinality/one}
                            {:db/ident :guild/notify-channel
                             :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one}
@@ -204,6 +207,7 @@
            #ig/ref :discord.event/guild-delete]
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
+  :commands #ig/refset :raid-boss/command
   :handler-fn raid-boss.events/update-guild-state}
 
  :raid-boss.event/process-new-user
@@ -232,7 +236,9 @@
   :handler-fn raid-boss.events/record-messages}
 
  :raid-boss.command/test
- {:options []
+ {:name "test"
+  :description "Some test command"
+  :options []
   :handler-fn raid-boss.commands/test-handler}
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
