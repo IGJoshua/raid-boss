@@ -50,6 +50,13 @@
       ;; - Update all the roles list and set them to having permission to ban or not
       )))
 
+(defn delete-guild
+  [deps event-type event-data]
+  ;; If the bot was removed from the guild
+  (when-not (:unavailable event-data)
+    ;; Delete all the guild state
+    (d/transact *db* [[:db/retractEntity [:guild/id (:id event-data)]]])))
+
 (defn process-new-user
   [deps event-type event-data]
   ;; TODO: When a user joins

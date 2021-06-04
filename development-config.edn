@@ -209,13 +209,17 @@
   :handler-fn #ig/ref :raid-boss/command-handler}
 
  :raid-boss.event/update-guild-state
- {:events [#ig/ref :discord.event/guild-create
-           #ig/ref :discord.event/guild-delete]
+ {:events [#ig/ref :discord.event/guild-create]
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
   :commands #ig/refset :raid-boss/command
   :command-version 1
   :handler-fn raid-boss.events/update-guild-state}
+
+ :raid-boss.event/delete-guild
+ {:events [#ig/ref :discord.event/guild-delete]
+  :db #ig/ref :datalog/db
+  :handler-fn raid-boss.events/delete-guild}
 
  :raid-boss.event/process-new-user
  {:events [#ig/ref :discord.event/guild-member-add]

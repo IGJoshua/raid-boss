@@ -40,6 +40,7 @@
 
 (derive :raid-boss.event/perform-slash-command :raid-boss/event)
 (derive :raid-boss.event/update-guild-state :raid-boss/event)
+(derive :raid-boss.event/delete-guild :raid-boss/event)
 (derive :raid-boss.event/process-new-user :raid-boss/event)
 (derive :raid-boss.event/record-unquarantined-users :raid-boss/event)
 (derive :raid-boss.event/update-admin-roles :raid-boss/event)
