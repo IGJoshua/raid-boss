@@ -1,5 +1,6 @@
 (ns raid-boss.events
   (:require
+   [clojure.core.async :as a]
    [datahike.api :as d]
    [discljord.connections :as con]
    [discljord.messaging :as msg]
@@ -8,14 +9,46 @@
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging*]]))
 
+(def application-information
+  (delay (msg/get-current-application-information! *messaging*)))
+
+(defn await-all
+  [chans]
+  (a/thread
+    (loop [to-poll (map (fn [ch] {::chan ch}) chans)]
+      (if (every? #(= (get % ::chan ::not-found) ::not-found) to-poll)
+        to-poll
+        (recur
+         (doall
+          (for [chan to-poll
+                :let [ch (::chan chan)]]
+            (or (when ch (a/poll! ch)) chan))))))))
+
 (defn update-guild-state
   [deps event-type event-data]
-  ;; TODO: When a guild is added, the following need to happen
-  ;; - Update all the roles list and set them to having permission to ban or not
-  ;; - Update the invite counts for the existing invites
-  ;; - Update all the commands for this server
-  (let [commands (:commands deps)]
-    ))
+  (a/go
+    ;; TODO: When a guild is added, the following need to happen
+    ;; - Update the invite counts for the existing invites
+    ;; - Update all the commands for this server
+    (let [commands (:commands deps)
+          application-id (a/<! @application-information)]
+      (when (> (:command-version deps)
+               (d/q {:query '[:find ?v
+                              :in $ ?guild
+                              [?g :guild/id ?guild]
+                              [?g :guild/command-version ?v]]
+                     :args [(d/db *db*) (:id event-data)]}))
+        (a/<! (await-all
+               (for [command (a/<! (msg/get-guild-application-commands! *messaging* application-id (:id event-data)))]
+                 (msg/delete-guild-application-command! *messaging* application-id (:id event-data) (:id command)
+                                                        :audit-reason "Update commands to most recent version"))))
+        ;; TODO: Create all the commands based on the options
+        ;; Tell the db that we've updated the commands
+        (d/transact *db* [{:db/id [:guild/id (:id event-data)]
+                           :guild/command-version (:command-version deps)}])
+        )
+      ;; - Update all the roles list and set them to having permission to ban or not
+      )))
 
 (defn process-new-user
   [deps event-type event-data]
