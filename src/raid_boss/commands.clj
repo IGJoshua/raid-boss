@@ -10,7 +10,14 @@
 
 (defn options-match?
   [options data]
-  true)
+  (or (every? empty? [options data])
+      (and (every? (complement :required) options)
+           (empty? data))
+      (and (apply = (map (comp #(select-keys % [:name :type]) first) [options data]))
+           (if (#{1 2} (:type (first options))) ; Check if this is a subcommand or group
+             (options-match? (:options (first options)) (:options (first data)))
+             true)
+           (recur (rest options) (rest data)))))
 
 (defn test-handler
   [interaction]

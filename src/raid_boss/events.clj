@@ -10,12 +10,12 @@
 
 (defn update-guild-state
   [deps event-type event-data]
-  (let [commands (:commands deps)])
   ;; TODO: When a guild is added, the following need to happen
   ;; - Update all the roles list and set them to having permission to ban or not
   ;; - Update the invite counts for the existing invites
   ;; - Update all the commands for this server
-  )
+  (let [commands (:commands deps)]
+    ))
 
 (defn process-new-user
   [deps event-type event-data]

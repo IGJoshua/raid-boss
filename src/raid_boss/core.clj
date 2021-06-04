@@ -208,7 +208,8 @@
   (fn [event-type event-data]
     (when (= 2 (:type event-data))
       (doseq [handler command-handlers
-              :when (options-match? (:options handler) (:data event-data))]
+              :when (and (= (:name handler) (:name event-data))
+                         (options-match? (:options handler) (get-in event-data [:data :options])))]
         ((:handler-fn handler) event-data)))))
 
 (defmethod ig/init-key :raid-boss/middleware
