@@ -80,7 +80,7 @@
                             :db/valueType :db.type/long
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :invite/author
-                            :db/valueType :db.type/ref
+                            :db/valueType :db.type/string
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :invite/suppress-until
                             :db/valueType :db.type/instant
