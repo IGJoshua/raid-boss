@@ -224,8 +224,7 @@
 
  :raid-boss.event/update-admin-roles
  {:events [#ig/ref :discord.event/guild-role-create
-           #ig/ref :discord.event/guild-role-update
-           #ig/ref :discord.event/guild-role-delete]
+           #ig/ref :discord.event/guild-role-update]
   :db #ig/ref :datalog/db
   :handler-fn raid-boss.events/update-admin-roles}
 
