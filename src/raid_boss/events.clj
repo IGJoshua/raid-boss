@@ -27,28 +27,83 @@
 (defn update-guild-state
   [deps event-type event-data]
   (a/go
-    ;; TODO: When a guild is added, the following need to happen
-    ;; - Update the invite counts for the existing invites
-    ;; - Update all the commands for this server
+    ;; Ensure the guild exists in the db
+    (d/transact *db*
+                [{:guild/id (:id event-data)}])
+
+    ;; Update the invite counts for the existing invites
+    (a/go
+      (let [invites (a/<! (msg/get-guild-invites! *messaging* (:id event-data)))]
+        (d/transact *db*
+                    (mapcat (fn [invite]
+                              [[:db/add [:guild/id (:id event-data)] :guild/invite (:code invite)]
+                               {:db/id (:code invite)
+                                :invite/code (:code invite)
+                                :invite/author (:id (:inviter invite))
+                                :invite/count (:uses invite)}])
+                            invites))))
+
+    ;; Update all the roles list and set them to having permissions
+    (d/transact *db*
+                (for [role (:roles event-data)]
+                  {:role/id (:id role)
+                   :role/permissions (:permissions role)}))
+
+    ;; Update all the commands for this server
     (let [commands (:commands deps)
-          application-id (a/<! @application-information)]
-      (when (> (:command-version deps)
-               (d/q {:query '[:find ?v
-                              :in $ ?guild
-                              [?g :guild/id ?guild]
-                              [?g :guild/command-version ?v]]
-                     :args [(d/db *db*) (:id event-data)]}))
+          application-id (:id (a/<! @application-information))
+          guild-version (d/q {:query '[:find ?v
+                                       :in $ ?guild
+                                       :where
+                                       [?g :guild/id ?guild]
+                                       [?g :guild/command-version ?v]]
+                              :args [(d/db *db*) (:id event-data)]})]
+      ;; If the commands are out of date
+      (when (or (empty? guild-version)
+                (> (:command-version deps)
+                   (first guild-version)))
+        ;; Delete all the commands
+        (a/<!
+         (await-all
+          (for [command (a/<! (msg/get-guild-application-commands! *messaging* application-id (:id event-data)))]
+            (msg/delete-guild-application-command! *messaging* application-id (:id event-data) (:id command)
+                                                   :audit-reason "Update commands to most recent version"))))
+
+        ;; Create all the commands based on the options
         (a/<! (await-all
-               (for [command (a/<! (msg/get-guild-application-commands! *messaging* application-id (:id event-data)))]
-                 (msg/delete-guild-application-command! *messaging* application-id (:id event-data) (:id command)
-                                                        :audit-reason "Update commands to most recent version"))))
-        ;; TODO: Create all the commands based on the options
+               (let [everyone (get (:roles event-data) (:id event-data))]
+                 (for [command commands]
+                   (a/go
+                     (let [created (a/<! (msg/create-guild-application-command!
+                                          *messaging* application-id (:id event-data)
+                                          (:name command)
+                                          (:description command)
+                                          :options (:options command)
+                                          :default_permission (empty? (:permissions command))
+                                          :audit-reason "Update commands to most recent version"))]
+                       (when-not (empty? (:permissions command))
+                         (a/<! (msg/edit-application-command-permissions!
+                                *messaging* application-id (:id event-data)
+                                (:id created)
+                                (into
+                                 [{:type 2
+                                   :id (:owner-id event-data)
+                                   :permission true}]
+                                 (map (fn [id]
+                                        {:type 1
+                                         :id id
+                                         :permission true}))
+                                 (for [role (dissoc (:roles event-data) (:id event-data))
+                                       :when (perms/has-permissions? (:permissions command) everyone [role])]
+                                   (:id role))))))))))))
+
         ;; Tell the db that we've updated the commands
-        (d/transact *db* [{:db/id [:guild/id (:id event-data)]
-                           :guild/command-version (:command-version deps)}])
-        )
-      ;; - Update all the roles list and set them to having permission to ban or not
-      )))
+        (d/transact *db* (into [{:db/id [:guild/id (:id event-data)]
+                                 :guild/command-version (:command-version deps)}]
+                               (map (fn [{:keys [id permissions]}]
+                                      {:role/id id
+                                       :role/permissions permissions}))
+                               (:roles event-data)))))))
 
 (defn delete-guild
   [deps event-type event-data]

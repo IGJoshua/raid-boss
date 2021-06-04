@@ -249,6 +249,7 @@
  {:name "test"
   :description "Some test command"
   :options []
+  :permissions #{}
   :handler-fn raid-boss.commands/test-handler}
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
