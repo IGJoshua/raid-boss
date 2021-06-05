@@ -77,12 +77,13 @@
            (for [command commands]
              (a/go
                (log/trace "Starting command" command)
+               (log/trace "Default permissions" (empty? (:permissions command)))
                (let [created (a/<! (msg/create-guild-application-command!
                                     *messaging* application-id (:id event-data)
                                     (:name command)
                                     (:description command)
                                     :options (:options command)
-                                    :default_permission (empty? (:permissions command))
+                                    :default-permission (empty? (:permissions command))
                                     :audit-reason "Update commands to most recent version"))]
                  (log/trace "Created the command" created)
                  (when-not (empty? (:permissions command))
