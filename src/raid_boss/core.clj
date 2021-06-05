@@ -209,7 +209,7 @@
   (fn [deps event-type event-data]
     (when (= 2 (:type event-data))
       (doseq [handler command-handlers
-              :when (and (= (:name handler) (:name event-data))
+              :when (and (= (:name handler) (get-in event-data [:data :name]))
                          (options-match? (:options handler) (get-in event-data [:data :options])))]
         ((:handler-fn handler) event-data)))))
 
