@@ -19,6 +19,6 @@
              true)
            (recur (rest options) (rest data)))))
 
-(defn test-handler
+(defn blacklist
   [interaction]
-  (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4 :data {:content "Hello, world!"}))
+  )

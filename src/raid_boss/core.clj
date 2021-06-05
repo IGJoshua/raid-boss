@@ -46,7 +46,7 @@
 (derive :raid-boss.event/update-admin-roles :raid-boss/event)
 (derive :raid-boss.event/record-spam-ham-messages :raid-boss/event)
 
-(derive :raid-boss.command/test :raid-boss/command)
+(derive :raid-boss.command/blacklist :raid-boss/command)
 
 (defn load-config
   [path]

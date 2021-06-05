@@ -245,12 +245,32 @@
   :db #ig/ref :datalog/db
   :handler-fn raid-boss.events/record-messages}
 
- :raid-boss.command/test
- {:name "test"
-  :description "Some test command"
-  :options []
-  :permissions #{}
-  :handler-fn raid-boss.commands/test-handler}
+ :raid-boss.command/blacklist
+ {:name "blacklist"
+  :description "Blacklist users with certain names from joining the server."
+  :options [{:type 2
+             :name "add"
+             :description "Add a new pattern of username to blacklist from joining the server."
+             :options [{:type 1
+                        :name "regex"
+                        :description "Ban all users whose name matches a regex, and prevent more from joining."
+                        :options [{:type 3
+                                   :name "pattern"
+                                   :required true
+                                   :description "A Java regex Pattern to match the whole name."}]}
+                       {:type 1
+                        :name "text"
+                        :description "Ban all users whose name exactly matches some text, and prevent more from joining."
+                        :options [{:type 3
+                                   :name "pattern"
+                                   :required true
+                                   :description "A string of text to match the name case-insensitively."}]}]}
+            {:type 1
+             :name "view"
+             :description "List all the existing blacklist patterns."
+             :options []}]
+  :permissions #{:ban-members}
+  :handler-fn raid-boss.commands/blacklist}
 
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
                            :handler #ig/ref :raid-boss/event-handler
