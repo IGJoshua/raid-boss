@@ -98,8 +98,10 @@
                                   {:type 1
                                    :id id
                                    :permission true}))
-                           (for [role (dissoc (:roles event-data) (:id event-data))
-                                 :when (perms/has-permissions? (:permissions command) everyone [role])]
+                           (for [role (filter (comp (complement #{(:id event-data)}) :id) (:roles event-data))
+                                 :when (perms/has-permissions? (:permissions command)
+                                                               (:permissions everyone)
+                                                               [(:permissions role)])]
                              (:id role)))))))))))
 
         (log/debug "Update the guild state to the new version")
