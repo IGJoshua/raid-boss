@@ -8,22 +8,12 @@
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [superv.async :as sa]
    [taoensso.timbre :as log]))
 
 (def application-information
   (delay (msg/get-current-application-information! *messaging*)))
 
-(defn await-all
-  [chans]
-  (a/thread
-    (loop [to-poll (map (fn [ch] {::chan ch}) chans)]
-      (if (every? #(= (get % ::chan ::not-found) ::not-found) to-poll)
-        to-poll
-        (recur
-         (doall
-          (for [chan to-poll
-                :let [ch (::chan chan)]]
-            (or (when ch (a/poll! ch)) chan))))))))
 (defn update-guild-state
   [deps event-type event-data]
   (a/go
@@ -74,39 +64,43 @@
         (log/info "The commands need to be updated in guild" (:id event-data))
         (log/debug "Deleting all the commands")
         ;; Delete all the commands
-        (a/<!
-         (await-all
-          (for [command (a/<! (msg/get-guild-application-commands! *messaging* application-id (:id event-data)))]
-            (msg/delete-guild-application-command! *messaging* application-id (:id event-data) (:id command)
-                                                   :audit-reason "Update commands to most recent version"))))
+        (sa/<!*
+         (for [command (a/<! (msg/get-guild-application-commands! *messaging* application-id (:id event-data)))]
+           (msg/delete-guild-application-command! *messaging* application-id (:id event-data) (:id command)
+                                                  :audit-reason "Update commands to most recent version")))
 
+        (log/debug "Construct all the commands")
         ;; Create all the commands based on the options
-        (a/<! (await-all
-               (let [everyone (get (:roles event-data) (:id event-data))]
-                 (for [command commands]
-                   (a/go
-                     (let [created (a/<! (msg/create-guild-application-command!
-                                          *messaging* application-id (:id event-data)
-                                          (:name command)
-                                          (:description command)
-                                          :options (:options command)
-                                          :default_permission (empty? (:permissions command))
-                                          :audit-reason "Update commands to most recent version"))]
-                       (when-not (empty? (:permissions command))
-                         (a/<! (msg/edit-application-command-permissions!
-                                *messaging* application-id (:id event-data)
-                                (:id created)
-                                (into
-                                 [{:type 2
-                                   :id (:owner-id event-data)
-                                   :permission true}]
-                                 (map (fn [id]
-                                        {:type 1
-                                         :id id
-                                         :permission true}))
-                                 (for [role (dissoc (:roles event-data) (:id event-data))
-                                       :when (perms/has-permissions? (:permissions command) everyone [role])]
-                                   (:id role))))))))))))
+        (sa/<!*
+         (let [everyone (first (filter (comp #{(:id event-data)} :id) (:roles event-data)))]
+           (log/trace "Everyone role:" everyone)
+           (for [command commands]
+             (a/go
+               (log/trace "Starting command" command)
+               (let [created (a/<! (msg/create-guild-application-command!
+                                    *messaging* application-id (:id event-data)
+                                    (:name command)
+                                    (:description command)
+                                    :options (:options command)
+                                    :default_permission (empty? (:permissions command))
+                                    :audit-reason "Update commands to most recent version"))]
+                 (log/trace "Created the command" created)
+                 (when-not (empty? (:permissions command))
+                   (log/trace "The permissions is not empty")
+                   (a/<! (msg/edit-application-command-permissions!
+                          *messaging* application-id (:id event-data)
+                          (:id created)
+                          (into
+                           [{:type 2
+                             :id (:owner-id event-data)
+                             :permission true}]
+                           (map (fn [id]
+                                  {:type 1
+                                   :id id
+                                   :permission true}))
+                           (for [role (dissoc (:roles event-data) (:id event-data))
+                                 :when (perms/has-permissions? (:permissions command) everyone [role])]
+                             (:id role)))))))))))
 
         (log/debug "Update the guild state to the new version")
         ;; Tell the db that we've updated the commands
