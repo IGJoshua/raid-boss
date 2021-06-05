@@ -7,7 +7,8 @@
    [discljord.permissions :as perms]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
-   [raid-boss.components :refer [*db* *gateway* *messaging*]]))
+   [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [taoensso.timbre :as log]))
 
 (def application-information
   (delay (msg/get-current-application-information! *messaging*)))
@@ -23,16 +24,17 @@
           (for [chan to-poll
                 :let [ch (::chan chan)]]
             (or (when ch (a/poll! ch)) chan))))))))
-
 (defn update-guild-state
   [deps event-type event-data]
   (a/go
     ;; Ensure the guild exists in the db
+    (log/debug "Upsert the guild with id" (:id event-data))
     (d/transact *db*
                 [{:guild/id (:id event-data)}])
 
     ;; Update the invite counts for the existing invites
     (a/go
+      (log/debug "Update the invites to the guild" (:id event-data))
       (let [invites (a/<! (msg/get-guild-invites! *messaging* (:id event-data)))]
         (d/transact *db*
                     (mapcat (fn [invite]
@@ -44,24 +46,33 @@
                             invites))))
 
     ;; Update all the roles list and set them to having permissions
+    (log/debug "Update all the role permissions for roles" (:roles event-data))
     (d/transact *db*
-                (for [role (:roles event-data)]
-                  {:role/id (:id role)
-                   :role/permissions (:permissions role)}))
+                (mapcat (fn [role]
+                          [[:db/add [:guild/id (:id event-data)] :guild/role (:id role)]
+                           {:db/id (:id role)
+                            :role/id (:id role)
+                            :role/permissions (:permissions role)}])
+                        (:roles event-data)))
 
     ;; Update all the commands for this server
     (let [commands (:commands deps)
           application-id (:id (a/<! @application-information))
-          guild-version (d/q {:query '[:find ?v
-                                       :in $ ?guild
-                                       :where
-                                       [?g :guild/id ?guild]
-                                       [?g :guild/command-version ?v]]
-                              :args [(d/db *db*) (:id event-data)]})]
+          guild-version (first
+                         (first
+                          (d/q {:query '[:find ?v
+                                         :in $ ?guild
+                                         :where
+                                         [?g :guild/id ?guild]
+                                         [?g :guild/command-version ?v]]
+                                :args [(d/db *db*) (:id event-data)]})))]
+      (log/debug "Guild with id" (:id event-data) "has command version" guild-version)
       ;; If the commands are out of date
-      (when (or (empty? guild-version)
+      (when (or (not guild-version)
                 (> (:command-version deps)
-                   (first guild-version)))
+                   guild-version))
+        (log/info "The commands need to be updated in guild" (:id event-data))
+        (log/debug "Deleting all the commands")
         ;; Delete all the commands
         (a/<!
          (await-all
@@ -97,6 +108,7 @@
                                        :when (perms/has-permissions? (:permissions command) everyone [role])]
                                    (:id role))))))))))))
 
+        (log/debug "Update the guild state to the new version")
         ;; Tell the db that we've updated the commands
         (d/transact *db* (into [{:db/id [:guild/id (:id event-data)]
                                  :guild/command-version (:command-version deps)}]
