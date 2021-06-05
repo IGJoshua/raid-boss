@@ -7,7 +7,7 @@
                             :db/cardinality :db.cardinality/one
                             :db/unique :db.unique/identity}
                            {:db/ident :guild/command-version
-                            :db/valueType :db.type/boolean
+                            :db/valueType :db.type/long
                             :db/cardinality :db.cardinality/one}
                            {:db/ident :guild/notify-channel
                             :db/valueType :db.type/string
