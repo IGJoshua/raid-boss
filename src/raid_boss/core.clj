@@ -206,7 +206,7 @@
 
 (defmethod ig/init-key :raid-boss/command-handler
   [_ {:keys [command-handlers]}]
-  (fn [event-type event-data]
+  (fn [deps event-type event-data]
     (when (= 2 (:type event-data))
       (doseq [handler command-handlers
               :when (and (= (:name handler) (:name event-data))
