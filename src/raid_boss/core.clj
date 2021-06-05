@@ -231,16 +231,15 @@
                        (apply fun deps args)))))})
 
 (defmethod ig/init-key :raid-boss/command
-  [_ {:keys [options handler-fn db messaging gateway]}]
-  {:options options
-   :handler-fn (let [fun (if (symbol? handler-fn)
-                           (resolve handler-fn)
-                           handler-fn)]
-                 (fn [& args]
-                   (binding [*messaging* (or messaging *messaging*)
-                             *gateway* (or gateway *gateway*)
-                             *db* (or db *db*)]
-                     (apply fun args))))})
+  [_ {:keys [options handler-fn db messaging gateway] :as opts}]
+  (assoc opts :handler-fn (let [fun (if (symbol? handler-fn)
+                                      (resolve handler-fn)
+                                      handler-fn)]
+                            (fn [& args]
+                              (binding [*messaging* (or messaging *messaging*)
+                                        *gateway* (or gateway *gateway*)
+                                        *db* (or db *db*)]
+                                (apply fun args))))))
 
 (defmethod ig/init-key :discord.bot/application
   [_ {:keys [event-channel handler]}]
