@@ -11,7 +11,9 @@
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging* application-information state]]
-   [taoensso.timbre :as log]))
+   [superv.async :as sa]
+   [taoensso.timbre :as log]
+   [clojure.string :as str]))
 
 (defn options-match?
   [options data]
@@ -42,6 +44,26 @@
 (defmethod blacklist :add
   [interaction]
   (blacklist-add interaction))
+
+(defn ban-existing-matches
+  [matches? guild-id interaction-token]
+  (a/go
+    (let [ban-count
+          (count
+           (sa/<!*
+            (for [user (select [(transformed [(collect ::st/guilds (keypath guild-id) :members MAP-KEYS)
+                                              ::st/users]
+                                             #(select-keys %2 %1))
+                                ::st/users MAP-VALS (selected? :username (pred matches?))]
+                               @state)]
+              (msg/create-guild-ban! *messaging* guild-id (:id user)
+                                     :delete-message-days 1
+                                     :reason "Username matched a server blacklist."
+                                     :audit-reason "New blacklist pattern"))))]
+      (msg/create-followup-message! *messaging* (:id (a/<! @application-information)) interaction-token
+                                    :content (str "Completed a purge of the new pattern, banning "
+                                                  ban-count " users.")
+                                    :flags 64))))
 
 (defmethod blacklist-add :regex
   [interaction]
