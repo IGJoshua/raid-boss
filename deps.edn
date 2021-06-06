@@ -4,7 +4,7 @@
         integrant/integrant {:mvn/version "0.8.0"}
 
         IGJoshua/discljord {:git/url "https://github.com/IGJoshua/discljord"
-                            :sha "5d4731a232dc699f8964e5a1d3d936d089502298"}
+                            :sha "4c3fa91ec6d700afb785a04ee8403896ee66c70e"}
         io.replikativ/datahike {:mvn/version "0.3.6"}
         com.taoensso/timbre {:mvn/version "5.1.2"}
 
