@@ -1,4 +1,6 @@
 (ns user
+  (:use
+   com.rpl.specter)
   (:require
    [clojure.core.async :as a]
    [datahike.api :as d]

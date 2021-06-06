@@ -7,12 +7,9 @@
    [discljord.permissions :as perms]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
-   [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [raid-boss.components :refer [*db* *gateway* *messaging* application-information]]
    [superv.async :as sa]
    [taoensso.timbre :as log]))
-
-(def application-information
-  (delay (msg/get-current-application-information! *messaging*)))
 
 (defn update-guild-state
   [deps event-type event-data]
