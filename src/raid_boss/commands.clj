@@ -65,16 +65,18 @@
                                                   ban-count " users.")
                                     :flags 64))))
 
+(def pattern-path (comp-paths :data :options FIRST :options FIRST :options FIRST :value))
+
 (defmethod blacklist-add :regex
   [interaction]
   (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                    :data {:content "Added a regex to the blacklist"}))
+                                    :data {:content "Added a regex to the blacklist" :flags 64})
+  (let [regex (select-one pattern-path interaction)]
+    (ban-existing-matches (partial re-matches regex) (:guild-id interaction) (:token interaction))))
 
 (defmethod blacklist-add :text
   [interaction]
   (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                    :data {:content "Added a text pattern to the blacklist"})
-  (a/go
-    (a/<! (a/timeout 10000))
-    (msg/create-followup-message! *messaging* (:id (a/<! @application-information)) (:token interaction)
-                                  :content "Banned all the users with that name")))
+                                    :data {:content "Added a text pattern to the blacklist" :flags 64})
+  (let [pattern (select-one pattern-path interaction)]
+    (ban-existing-matches #(.equalsIgnoreCase pattern %) (:guild-id interaction) (:token interaction))))
