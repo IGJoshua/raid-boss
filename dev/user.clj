@@ -13,6 +13,7 @@
    [integrant.core :as ig]
    [integrant.repl :refer [clear go halt prep init reset reset-all]]
    [raid-boss.core :as app]
+   [raid-boss.components :refer [state]]
    [taoensso.timbre :as log]))
 
 (integrant.repl/set-prep! #(-> "development-config.edn"

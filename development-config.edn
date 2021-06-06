@@ -212,6 +212,7 @@
  {:events [#ig/ref :discord.event/guild-create]
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
+  :gateway #ig/ref :discord.connection/gateway
   :commands #ig/refset :raid-boss/command
   :command-version 1
   :handler-fn raid-boss.events/update-guild-state}

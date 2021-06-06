@@ -7,9 +7,10 @@
    [discljord.connections :as con]
    [discljord.messaging :as msg]
    [discljord.permissions :as perms]
+   [discljord.events.state :as st]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
-   [raid-boss.components :refer [*db* *gateway* *messaging* application-information]]
+   [raid-boss.components :refer [*db* *gateway* *messaging* application-information state]]
    [taoensso.timbre :as log]))
 
 (defn options-match?

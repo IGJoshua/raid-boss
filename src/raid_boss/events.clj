@@ -14,6 +14,8 @@
 (defn update-guild-state
   [deps event-type event-data]
   (a/go
+    (con/guild-request-members! *gateway* (:id event-data))
+
     ;; Ensure the guild exists in the db
     (log/debug "Upsert the guild with id" (:id event-data))
     (d/transact *db*

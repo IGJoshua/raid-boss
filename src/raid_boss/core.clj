@@ -6,10 +6,11 @@
    [discljord.messaging :as msg]
    [discljord.connections :as con]
    [discljord.events :as e]
+   [discljord.events.state :refer [caching-middleware]]
    [farolero.core :as far :refer [restart-case handler-case handler-bind
                                   block return-from tagbody go]]
    [integrant.core :as ig]
-   [raid-boss.components :refer [*db* *gateway* *messaging*]]
+   [raid-boss.components :refer [*db* *gateway* *messaging* state]]
    [raid-boss.commands :refer [options-match?]]
    [raid-boss.events]
    [taoensso.timbre :as log])
@@ -201,8 +202,9 @@
                     (reduce #(update %1 %2 (fnil conj []) (:handler-fn handler)) acc (:events handler)))
                   {}
                   event-handlers)]
-    (fn [event-type event-data]
-      (e/dispatch-handlers handlers event-type event-data))))
+    ((caching-middleware state)
+     (fn [event-type event-data]
+       (e/dispatch-handlers handlers event-type event-data)))))
 
 (defmethod ig/init-key :raid-boss/command-handler
   [_ {:keys [command-handlers]}]

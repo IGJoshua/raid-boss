@@ -6,5 +6,7 @@
 (def ^:dynamic *gateway* nil)
 (def ^:dynamic *db* nil)
 
+(def state (atom {}))
+
 (def application-information
   (delay (msg/get-current-application-information! *messaging*)))
