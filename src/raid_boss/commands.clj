@@ -3,6 +3,7 @@
    com.rpl.specter)
   (:require
    [clojure.core.async :as a]
+   [clojure.string :as str]
    [datahike.api :as d]
    [discljord.connections :as con]
    [discljord.messaging :as msg]
@@ -12,8 +13,7 @@
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging* application-information state]]
    [superv.async :as sa]
-   [taoensso.timbre :as log]
-   [clojure.string :as str]))
+   [taoensso.timbre :as log]))
 
 (defn options-match?
   [options data]
