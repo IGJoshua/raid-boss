@@ -120,6 +120,18 @@
     ;; Delete all the guild state
     (d/transact *db* [[:db/retractEntity [:guild/id (:id event-data)]]])))
 
+(defmulti username-matches?
+  (fn [type pattern username]
+    type))
+
+(defmethod username-matches? :regex
+  [_ pattern username]
+  (re-matches pattern username))
+
+(defmethod username-matches? :text
+  [_ pattern username]
+  (= pattern username))
+
 (defn process-new-user
   [deps event-type event-data]
   ;; TODO: When a user joins
@@ -127,8 +139,20 @@
   ;;   - If only one increased, associate that invite with this join event
   ;;   - Add the user to a recent join-group with this invite, adding it if it doesn't exist
   ;;   - Calculate if this is a high risk join group and notify admins
-  ;; - Ban the user if their name matches the blacklist
-  )
+  ;; Ban the user if their name matches the blacklist
+  (block did-ban?
+    (doseq [[pattern type]
+            (d/q {:query '[:find ?pattern ?type
+                           :in $ ?guild
+                           :where
+                           [?g :guild/id ?guild]
+                           [?g :guild/blacklist ?p]
+                           [?p :blacklist/pattern ?pattern]
+                           [?p :blacklist/type ?type]]
+                  :args [(d/db *db*) (:guild-id event-data)]})
+            :when (username-matches? type pattern (get-in event-data [:user :username]))]
+      (msg/create-guild-ban! *messaging* (:guild-id event-data) (get-in event-data [:user :id]))
+      (return-from did-ban? true))))
 
 (defn record-unquarantined-user
   [deps event-type event-data]
