@@ -13,7 +13,9 @@
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging* application-information state]]
    [superv.async :as sa]
-   [taoensso.timbre :as log]))
+   [taoensso.timbre :as log])
+  (:import
+   (java.util UUID)))
 
 (defn options-match?
   [options data]
@@ -80,14 +82,33 @@
 
 (defmethod blacklist-add :regex
   [interaction]
-  (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                    :data {:content "Added a regex to the blacklist" :flags 64})
   (let [regex (select-one pattern-path interaction)]
-    (ban-existing-matches (partial re-matches regex) (:guild-id interaction) (:token interaction))))
+    (if (pattern-exists? (:guild-id interaction) regex :regex)
+      (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
+                                        :data {:content "That pattern is already on the blacklist" :flags 64})
+      (let [id (UUID/randomUUID)]
+        (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
+                                          :data {:content "Added a regex to the blacklist" :flags 64})
+
+        (d/transact *db* [[:db/add [:guild/id (:guild-id interaction)] :guild/blacklist "pattern"]
+                          {:db/id "pattern"
+                           :blacklist/id id
+                           :blacklist/type :regex
+                           :blacklist/pattern regex}])
+        (ban-existing-matches (partial re-matches regex) (:guild-id interaction) (:token interaction))))))
 
 (defmethod blacklist-add :text
   [interaction]
-  (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                    :data {:content "Added a text pattern to the blacklist" :flags 64})
   (let [pattern (select-one pattern-path interaction)]
-    (ban-existing-matches #(.equalsIgnoreCase pattern %) (:guild-id interaction) (:token interaction))))
+    (if (pattern-exists? (:guild-id interaction) pattern :text)
+      (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
+                                        :data {:content "That pattern is already on the blacklist" :flags 64})
+      (let [id (UUID/randomUUID)]
+        (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
+                                          :data {:content "Added a text pattern to the blacklist" :flags 64})
+        (d/transact *db* [[:db/add [:guild/id (:guild-id interaction)] :guild/blacklist "pattern"]
+                          {:db/id "pattern"
+                           :blacklist/id id
+                           :blacklist/type :text
+                           :blacklist/pattern pattern}])
+        (ban-existing-matches #(.equalsIgnoreCase pattern %) (:guild-id interaction) (:token interaction))))))
