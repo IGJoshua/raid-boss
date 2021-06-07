@@ -91,7 +91,9 @@
                                         :data {:content "That pattern is already on the blacklist" :flags 64})
       (let [id (UUID/randomUUID)]
         (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                          :data {:content "Added a regex to the blacklist" :flags 64})
+                                          :data {:content (str "Added the regex `"
+                                                               regex
+                                                               "` to the blacklist")})
 
         (d/transact *db* [[:db/add [:guild/id (:guild-id interaction)] :guild/blacklist "pattern"]
                           {:db/id "pattern"
@@ -108,7 +110,9 @@
                                         :data {:content "That pattern is already on the blacklist" :flags 64})
       (let [id (UUID/randomUUID)]
         (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
-                                          :data {:content "Added a text pattern to the blacklist" :flags 64})
+                                          :data {:content (str "Added the text pattern `"
+                                                               pattern
+                                                               "` to the blacklist")})
         (d/transact *db* [[:db/add [:guild/id (:guild-id interaction)] :guild/blacklist "pattern"]
                           {:db/id "pattern"
                            :blacklist/id id
