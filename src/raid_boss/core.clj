@@ -169,7 +169,8 @@
 
 (defmethod ig/halt-key! :discord.connection/event-channel
   [_ chan]
-  (a/close! chan))
+  (when chan
+    (a/close! chan)))
 
 (defmethod ig/init-key :discord.connection/messaging
   [_ {:keys [token]}]
@@ -177,7 +178,8 @@
 
 (defmethod ig/halt-key! :discord.connection/messaging
   [_ msg]
-  (msg/stop-connection! msg))
+  (when msg
+    (msg/stop-connection! msg)))
 
 (defmethod ig/init-key :discord.connection/gateway
   [_ {:keys [intents token channel]}]
@@ -186,7 +188,8 @@
 
 (defmethod ig/halt-key! :discord.connection/gateway
   [_ conn]
-  (con/disconnect-bot! conn))
+  (when conn
+    (con/disconnect-bot! conn)))
 
 (defmethod ig/init-key :discord.bot/intent
   [_ name]
@@ -259,4 +262,5 @@
 
 (defmethod ig/halt-key! :discord.bot/application
   [_ {:keys [stop-chan]}]
-  (a/put! stop-chan :stop))
+  (when stop-chan
+    (a/put! stop-chan :stop)))
