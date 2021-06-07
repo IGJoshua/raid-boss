@@ -37,6 +37,8 @@
 
 (defmethod blacklist :view
   [interaction]
+  ;; TODO(Joshua): Add in an interactive view of all the patterns, including
+  ;;               buttons to delete them.
   (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
                                     :data {:content "Viewing the blacklist"}))
 
