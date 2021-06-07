@@ -65,6 +65,17 @@
                                                   ban-count " users.")
                                     :flags 64))))
 
+(defn pattern-exists?
+  [guild-id pattern type]
+  (pos? (count (d/q {:query '[:find ?p
+                              :in $ ?guild ?pattern ?type
+                              :where
+                              [?g :guild/id ?guild]
+                              [?g :guild/blacklist ?p]
+                              [?p :blacklist/pattern ?pattern]
+                              [?p :blacklist/type ?type]]
+                     :args [(d/db *db*) guild-id pattern type]}))))
+
 (def pattern-path (comp-paths :data :options FIRST :options FIRST :options FIRST :value))
 
 (defmethod blacklist-add :regex
