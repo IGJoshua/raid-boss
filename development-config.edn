@@ -273,6 +273,18 @@
   :permissions #{:ban-members}
   :handler-fn raid-boss.commands/blacklist}
 
+ :raid-boss.command/configure
+ {:name "configure"
+  :description "Update the server's configuration"
+  :options [{:type 1
+             :name "notification-channel"
+             :description "Change which channel is used to notify administrators of raid activity."
+             :options [{:type 7
+                        :name "channel"
+                        :description "The channel where notifications occur, none if left out."}]}]
+  :permissions #{:manage-guild}
+  :handler-fn raid-boss.commands/configure}
+
  :discord.bot/application {:event-channel #ig/ref :discord.connection/event-channel
                            :handler #ig/ref :raid-boss/event-handler
                            :logger #ig/ref :logger/instance}}

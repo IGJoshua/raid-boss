@@ -13,7 +13,8 @@
                                   block return-from tagbody go]]
    [raid-boss.components :refer [*db* *gateway* *messaging* application-information state]]
    [superv.async :as sa]
-   [taoensso.timbre :as log])
+   [taoensso.timbre :as log]
+   [discljord.formatting :as fmt])
   (:import
    (java.util UUID)))
 
@@ -112,3 +113,17 @@
                            :blacklist/type :text
                            :blacklist/pattern pattern}])
         (ban-existing-matches #(.equalsIgnoreCase pattern %) (:guild-id interaction) (:token interaction))))))
+
+(defmulti configure
+  (fn [interaction]
+    (select-one [:data :options FIRST :name (view keyword)] interaction)))
+
+(defmethod configure :notification-channel
+  [interaction]
+  (let [channel (select-one [:data :options FIRST :options FIRST :value] interaction)]
+    (d/transact *db*
+                [[:db/add [:guild/id (:guild-id interaction)]
+                  :guild/notify-channel channel]])
+    (msg/create-interaction-response! *messaging* (:id interaction) (:token interaction) 4
+                                      :data {:content (str "Set admin notifications to be sent to "
+                                                           (fmt/mention-channel channel))})))

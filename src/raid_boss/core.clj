@@ -48,6 +48,7 @@
 (derive :raid-boss.event/record-spam-ham-messages :raid-boss/event)
 
 (derive :raid-boss.command/blacklist :raid-boss/command)
+(derive :raid-boss.command/configure :raid-boss/command)
 
 (defn load-config
   [path]
