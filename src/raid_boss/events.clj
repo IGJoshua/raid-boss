@@ -170,6 +170,10 @@
   ;;   - Enable the commands
   ;; - Otherwise
   ;;   - Disable the commands
+  )
+
+(defn delete-role
+  [deps event-type event-data]
   ;; TODO: When a role is deleted
   ;; - Remove the role from the cache
   )

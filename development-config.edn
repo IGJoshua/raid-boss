@@ -240,6 +240,11 @@
   :db #ig/ref :datalog/db
   :handler-fn raid-boss.events/update-admin-roles}
 
+ :raid-boss.event/delete-role
+ {:events [#ig/ref :discord.event/guild-role-delete]
+  :db #ig/ref :datalog/db
+  :handler-fn raid-boss.events/delete-role}
+
  :raid-boss.event/record-spam-ham-messages
  {:events [#ig/ref :discord.event/message-create
            #ig/ref :discord.event/message-update]
