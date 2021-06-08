@@ -161,6 +161,21 @@
     (when (blacklisted? guild-id username user-id)
       (msg/create-guild-ban! *messaging* guild-id user-id))))
 
+(defn process-existing-users
+  [deps event-type event-data]
+  ;; When a chunk of users is received
+  (let [guild-id (:guild-id event-data)]
+    ;; Loop through every user
+    (doseq [member (:members event-data)
+            :let [username (get-in member [:user :username])
+                  user-id (get-in member [:user :id])]
+            ;; If they're blacklisted
+            :when (blacklisted? guild-id username user-id)]
+      ;; Ban them
+      (msg/create-guild-ban! *messaging* guild-id user-id
+                             :delete-message-days 1
+                             :reason "Removing blacklisted users since the bot went down"))))
+
 (defn record-unquarantined-user
   [deps event-type event-data]
   ;; TODO: When a user is updated

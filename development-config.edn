@@ -176,6 +176,8 @@
                                   :intents [#ig/ref :discord.bot.intent/guild-members]}
  :discord.event/guild-member-update {:name :guild-member-update
                                      :intents [#ig/ref :discord.bot.intent/guild-members]}
+ :discord.event/guild-members-chunk {:name :guild-members-chunk
+                                     :intents [#ig/ref :discord.bot.intent/guild-members]}
  :discord.event/invite-create {:name :invite-create
                                :intents [#ig/ref :discord.bot.intent/guild-invites]}
  :discord.event/guild-ban-remove {:name :guild-ban-remove
@@ -227,6 +229,12 @@
   :db #ig/ref :datalog/db
   :messaging #ig/ref :discord.connection/messaging
   :handler-fn raid-boss.events/process-new-user}
+
+ :raid-boss.event/process-existing-users
+ {:events [#ig/ref :discord.event/guild-members-chunk]
+  :db #ig/ref :datalog/db
+  :messaging #ig/ref :discord.connection/messaging
+  :handler-fn raid-boss.events/process-existing-users}
 
  :raid-boss.event/record-unquarantined-users
  {:events [#ig/ref :discord.event/guild-member-update
