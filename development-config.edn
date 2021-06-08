@@ -172,7 +172,7 @@
                               :intents [#ig/ref :discord.bot.intent/guilds]}
  :discord.event/guild-delete {:name :guild-delete
                               :intents [#ig/ref :discord.bot.intent/guilds]}
- :discord.event/guild-member-add {:name :guild-member:add
+ :discord.event/guild-member-add {:name :guild-member-add
                                   :intents [#ig/ref :discord.bot.intent/guild-members]}
  :discord.event/guild-member-update {:name :guild-member:add
                                      :intents [#ig/ref :discord.bot.intent/guild-members]}
