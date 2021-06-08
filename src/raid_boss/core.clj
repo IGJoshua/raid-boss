@@ -45,6 +45,7 @@
 (derive :raid-boss.event/process-new-user :raid-boss/event)
 (derive :raid-boss.event/record-unquarantined-users :raid-boss/event)
 (derive :raid-boss.event/update-admin-roles :raid-boss/event)
+(derive :raid-boss.event/delete-role :raid-boss/event)
 (derive :raid-boss.event/record-spam-ham-messages :raid-boss/event)
 
 (derive :raid-boss.command/blacklist :raid-boss/command)
