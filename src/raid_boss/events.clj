@@ -130,7 +130,7 @@
 
 (defmethod username-matches? :text
   [_ pattern username]
-  (= pattern username))
+  (.equalsIgnoreCase pattern username))
 
 (defn process-new-user
   [deps event-type event-data]
